@@ -1,0 +1,4 @@
+pandas
+openai
+chromadb
+# tiktoken is often needed by openai lib for counting tokens

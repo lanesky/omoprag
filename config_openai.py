@@ -23,10 +23,10 @@ OPENAI_TRANSLATION_MODEL = "gpt-4.1-nano" # Default translation model
 
 # --- Data Configuration ---
 VOCABULARY_DIR = 'csv_for_indexing' # Directory containing CONCEPT.csv
-CONCEPT_FILE = os.path.join(VOCABULARY_DIR, 'CONCEPT_STANDARD_100.csv')
+CONCEPT_FILE = os.path.join(VOCABULARY_DIR, 'CONCEPT.csv')
 
 # --- ChromaDB Configuration ---
-CHROMA_PATH = os.path.join('index_openai', 'chroma_db') # Directory to store ChromaDB data
+CHROMA_PATH = os.path.join('D:\omop', 'chroma_db') # Directory to store ChromaDB data
 COLLECTION_NAME = "omop_concepts_openai"
 
 # Ensure index directory exists

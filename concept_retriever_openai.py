@@ -3,6 +3,7 @@ import argparse
 import chromadb
 import time
 from openai import OpenAI, RateLimitError, APIError
+import os
 
 # Import configuration and translation function
 from config_openai import (
@@ -24,17 +25,9 @@ if not OPENAI_API_KEY:
     exit(1)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Initialize ChromaDB Client
-try:
-    chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
-    collection = chroma_client.get_collection(name=COLLECTION_NAME)
-    print(f"Successfully connected to ChromaDB collection '{COLLECTION_NAME}' at '{CHROMA_PATH}'.")
-    print(f"Collection contains approx. {collection.count()} concepts.")
-except Exception as e:
-    print(f"Error: Could not connect to ChromaDB collection '{COLLECTION_NAME}' at '{CHROMA_PATH}'.")
-    print(f"Details: {e}")
-    print("Please ensure the index was built correctly using vocabulary_indexer_openai.py.")
-    exit(1)
+# ChromaDB client and collection will be initialized in the find_concepts_openai function
+chroma_client = None
+collection = None
 
 def get_query_embedding(text: str, model: str) -> list[float] | None:
     """Generates embedding for the query text using OpenAI."""
@@ -51,12 +44,30 @@ def get_query_embedding(text: str, model: str) -> list[float] | None:
         print(f"Error: Unexpected error during embedding generation: {e}")
         return None
 
-def find_concepts_openai(query: str, domain: str, vocabulary: str | None = None, k: int = 5):
+def find_concepts_openai(query: str, domain: str, vocabulary: str | None = None, k: int = 5, db_domain: str = None):
     """
     Finds candidate OMOP concepts using OpenAI embeddings and ChromaDB filtering.
     """
     start_time = time.time()
-
+    
+    # Initialize ChromaDB Client with the appropriate path based on domain
+    global chroma_client, collection
+    # If db_domain is specified, use it instead of the filter domain
+    path_domain = db_domain if db_domain is not None else domain
+    actual_chroma_path = os.path.join(CHROMA_PATH, path_domain)
+    
+    try:
+        print(f"Connecting to ChromaDB at path: {actual_chroma_path}")
+        chroma_client = chromadb.PersistentClient(path=actual_chroma_path)
+        collection = chroma_client.get_collection(name=COLLECTION_NAME)
+        print(f"Successfully connected to ChromaDB collection '{COLLECTION_NAME}' at '{actual_chroma_path}'.")
+        print(f"Collection contains approx. {collection.count()} concepts.")
+    except Exception as e:
+        print(f"Error: Could not connect to ChromaDB collection '{COLLECTION_NAME}' at '{actual_chroma_path}'.")
+        print(f"Details: {e}")
+        print("Please ensure the index was built correctly using vocabulary_indexer_openai_streaming.py.")
+        exit(1)
+    
     # 1. Translate query
     translated_query = get_translation_openai(query, target_language='en')
     if not translated_query: # Translator now returns original on failure
@@ -144,9 +155,10 @@ def display_results(candidates):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Retrieve OMOP Concepts using RAG with OpenAI Embeddings.")
     parser.add_argument("query", type=str, help="The input word, phrase, or description (Chinese, Japanese, or English).")
-    parser.add_argument("domain", type=str, help="The target OMOP domain to filter by (e.g., Condition, Drug). Case-sensitive match to data.")
+    parser.add_argument("domain", type=str, help="The target OMOP domain to filter by (e.g., Condition, Drug). Case-sensitive match to data. Also used to determine the ChromaDB path by default.")
     parser.add_argument("-v", "--vocabulary", type=str, default=None, help="(Optional) The target OMOP vocabulary to filter by (e.g., SNOMED, RxNorm). Case-sensitive match to data.")
     parser.add_argument("-k", "--top_k", type=int, default=5, help="Number of results to return.")
+    parser.add_argument("--use-all-db", action="store_true", help="Use the default 'All' ChromaDB path instead of domain-specific path")
 
     args = parser.parse_args()
 
@@ -156,8 +168,15 @@ if __name__ == "__main__":
     if args.vocabulary:
         print(f"Target Vocabulary: {args.vocabulary}")
     print(f"Number of Results (k): {args.top_k}")
+    
+    # Determine which ChromaDB path to use
+    db_domain = "All" if args.use_all_db else args.domain
+    if args.use_all_db:
+        print("Using 'All' ChromaDB path (combined database) with domain filter")
+    else:
+        print(f"Using domain-specific ChromaDB path: {db_domain}")
     print("--- Starting Search ---")
 
-    candidates = find_concepts_openai(args.query, args.domain, args.vocabulary, args.top_k)
+    candidates = find_concepts_openai(args.query, args.domain, args.vocabulary, args.top_k, db_domain=db_domain)
     display_results(candidates)
     print("--- Search Complete ---")
