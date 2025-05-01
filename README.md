@@ -103,7 +103,7 @@ python concept_retriever_openai_quick.py "高血压" Condition
 ### 2. 获取CPT4数据（可选）
 
 1. 申请CPT4的License Key
-   - 访问 [AMA CPT网站](https://www.ama-assn.org/practice-management/cpt)
+   - 访问 [UMLS网站](https://uts.nlm.nih.gov/uts/login)
    - 按照指导申请CPT4的License
 
 2. 使用License Key下载CPT4数据
