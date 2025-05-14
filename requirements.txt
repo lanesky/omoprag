@@ -2,3 +2,7 @@ pandas
 openai
 chromadb
 # tiktoken is often needed by openai lib for counting tokens
+fastapi
+uvicorn
+python-dotenv
+pydantic>=2.0.0
