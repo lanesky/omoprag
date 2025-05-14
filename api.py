@@ -6,17 +6,33 @@ It exposes the concept retrieval logic from concept_retriever_openai_quick.py as
 
 import os
 import time
+import secrets
 from typing import List, Optional, Dict, Any, Union
-from fastapi import FastAPI, HTTPException, Query, Depends
+from fastapi import FastAPI, HTTPException, Query, Depends, Header, Security
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security.api_key import APIKeyHeader, APIKey
 from pydantic import BaseModel, Field
 import uvicorn
+from dotenv import load_dotenv
 
 # Import the concept retrieval functionality
 try:
     from concept_retriever_openai_quick import find_concepts_openai, display_results
 except ImportError:
     raise ImportError("Failed to import from concept_retriever_openai_quick.py. Make sure the file exists and is accessible.")
+
+# Load environment variables
+load_dotenv()
+
+# API key settings
+API_KEY_NAME = "X-API-Key"
+API_KEY = os.getenv("API_KEY") or secrets.token_urlsafe(32)  # Generate a random key if not set
+
+if not os.getenv("API_KEY"):
+    print(f"WARNING: API_KEY environment variable not set. Using generated key: {API_KEY}")
+    print("Set this key in your environment or .env file for persistent authentication.")
+
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 # Create FastAPI app
 app = FastAPI(
@@ -55,6 +71,15 @@ class ConceptSearchResponse(BaseModel):
     count: int = Field(..., description="Number of results returned")
     search_time: float = Field(..., description="Search time in seconds")
 
+# API key dependency
+async def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API Key",
+        )
+    return api_key
+
 # Define API endpoints
 @app.get("/", tags=["Info"])
 async def root():
@@ -74,7 +99,7 @@ async def health_check():
     return {"status": "healthy", "timestamp": time.time()}
 
 @app.post("/concepts/search", response_model=ConceptSearchResponse, tags=["Concepts"])
-async def search_concepts(request: ConceptRequest):
+async def search_concepts(request: ConceptRequest, api_key: APIKey = Depends(get_api_key)):
     """
     Search for OMOP concepts based on the provided query.
     
@@ -127,7 +152,8 @@ async def search_concepts_get(
     domain: str = Query(..., description="The domain to search in (e.g., 'Condition', 'Drug', 'Procedure')"),
     vocabulary: Optional[str] = Query(None, description="Optional vocabulary filter"),
     k: int = Query(5, description="Number of results to return", ge=1, le=100),
-    db_domain: Optional[str] = Query(None, description="Optional database domain if different from search domain")
+    db_domain: Optional[str] = Query(None, description="Optional database domain if different from search domain"),
+    api_key: APIKey = Depends(get_api_key)
 ):
     """
     Search for OMOP concepts based on the provided query parameters.

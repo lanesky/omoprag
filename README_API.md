@@ -21,7 +21,26 @@ This API provides a FastAPI implementation for retrieving OMOP standard concepts
    export OPENAI_API_KEY="your-api-key"
    ```
 
-3. Ensure you have built the ChromaDB index for the domains you want to search in. If not, run the vocabulary indexer first.
+3. Set your API authentication key:
+   ```
+   # Windows PowerShell
+   $env:API_KEY = "your-chosen-api-key"
+   
+   # Windows Command Prompt
+   set API_KEY=your-chosen-api-key
+   
+   # Linux/Mac
+   export API_KEY="your-chosen-api-key"
+   ```
+   
+   Alternatively, you can add this to a `.env` file in the project directory:
+   ```
+   API_KEY=your-chosen-api-key
+   ```
+   
+   If you don't set an API key, a random one will be generated and displayed when you start the server.
+
+4. Ensure you have built the ChromaDB index for the domains you want to search in. If not, run the vocabulary indexer first.
 
 ## Running the API
 
@@ -82,14 +101,29 @@ Alternative GET endpoint for simple queries.
 GET /concepts/search?query=heart%20attack&domain=Condition&k=10
 ```
 
+## Authentication
+
+All API endpoints (except `/` and `/health`) require API key authentication. You need to include the API key in the request header:
+
+```
+X-API-Key: your-api-key
+```
+
+If you don't include a valid API key, the server will respond with a 403 Forbidden error.
+
 ## Example Usage with Python Requests
 
 ```python
 import requests
 
+# Your API key
+api_key = "your-api-key"  # The one you set in the environment or .env file
+headers = {"X-API-Key": api_key}
+
 # POST request
 response = requests.post(
     "http://localhost:8000/concepts/search",
+    headers=headers,
     json={
         "query": "heart attack",
         "domain": "Condition",
@@ -102,6 +136,7 @@ print(results)
 # GET request
 response = requests.get(
     "http://localhost:8000/concepts/search",
+    headers=headers,
     params={
         "query": "heart attack",
         "domain": "Condition",
@@ -118,8 +153,10 @@ print(results)
 # POST request
 curl -X POST "http://localhost:8000/concepts/search" \
      -H "Content-Type: application/json" \
+     -H "X-API-Key: your-api-key" \
      -d '{"query":"heart attack","domain":"Condition","k":5}'
 
 # GET request
-curl -X GET "http://localhost:8000/concepts/search?query=heart%20attack&domain=Condition&k=5"
+curl -X GET "http://localhost:8000/concepts/search?query=heart%20attack&domain=Condition&k=5" \
+     -H "X-API-Key: your-api-key"
 ```
