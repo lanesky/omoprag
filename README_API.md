@@ -151,12 +151,20 @@ print(results)
 
 ```bash
 # POST request
-curl -X POST "http://localhost:8000/concepts/search" \
-     -H "Content-Type: application/json" \
-     -H "X-API-Key: your-api-key" \
-     -d '{"query":"heart attack","domain":"Condition","k":5}'
+curl -X POST "http://localhost:8000/concepts/search" ^
+     -H "X-API-Key: your-chosen-api-key" ^
+     -H "Content-Type: application/json" ^
+     -d "{\"query\": \"風邪\", \"domain\": \"Condition\", \"k\": 5}"
 
 # GET request
-curl -X GET "http://localhost:8000/concepts/search?query=heart%20attack&domain=Condition&k=5" \
-     -H "X-API-Key: your-api-key"
+curl -X GET "http://localhost:8000/concepts/search?query=%E9%A2%A8%E9%82%AA&domain=Condition&k=5" \
+     -H "X-API-Key: your-chosen-api-key"
+
 ```
+You will get a response like this:
+
+```json
+{"query":"風邪","results":[{"concept_id":4202791,"concept_name":"Cold foot","domain_id":"Condition","vocabulary_id":"SNOMED","score":0.4542393684387207},{"concept_id":4152178,"concept_name":"Cold hands","domain_id":"Condition","vocabulary_id":"SNOMED","score":0.4798368215560913},{"concept_id":4154763,"concept_name":"Cold feet","domain_id":"Condition","vocabulary_id":"SNOMED","score":0.4896009564399719},{"concept_id":45765428,"concept_name":"Cold-induced sweating syndrome","domain_id":"Condition","vocabulary_id":"SNOMED","score":0.5000602006912231},{"concept_id":260427,"concept_name":"Common cold","domain_id":"Condition","vocabulary_id":"SNOMED","score":0.5007759928703308}],"count":5,"search_time":1.7644286155700684} 
+```
+
+

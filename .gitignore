@@ -176,3 +176,5 @@ cython_debug/
 athena/
 csv_for_indexing/
 index_openai/
+chroma_db/
+
